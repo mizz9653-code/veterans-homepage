@@ -1,0 +1,35 @@
+name: Deploy Veterans Homepage
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build a static copy of the homepage
+        run: |
+          rm -rf site
+          mkdir -p site
+          wget --mirror --page-requisites --convert-links --adjust-extension --span-hosts --domains veteransedu.net -e robots=off -P site https://veteransedu.net/index.php
+          SRC="site/veteransedu.net"
+          if [ -f "$SRC/index.php" ]; then cp "$SRC/index.php" site/index.html; elif [ -f "$SRC/index.html" ]; then cp "$SRC/index.html" site/index.html; else echo 'Homepage download failed'; find site -maxdepth 4 -type f | head -50; exit 1; fi
+          find site -type f -name '*.php' -not -path 'site/index.html' -delete || true
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: './site'
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
