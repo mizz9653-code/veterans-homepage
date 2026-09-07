@@ -20,12 +20,15 @@ jobs:
       - uses: actions/checkout@v6
       - name: Build a static copy of the homepage
         run: |
+          set -e
           rm -rf site
           mkdir -p site
-          wget --mirror --page-requisites --convert-links --adjust-extension --span-hosts --domains veteransedu.net -e robots=off -P site https://veteransedu.net/index.php
-          SRC="site/veteransedu.net"
-          if [ -f "$SRC/index.php" ]; then cp "$SRC/index.php" site/index.html; elif [ -f "$SRC/index.html" ]; then cp "$SRC/index.html" site/index.html; else echo 'Homepage download failed'; find site -maxdepth 4 -type f | head -50; exit 1; fi
-          find site -type f -name '*.php' -not -path 'site/index.html' -delete || true
+          curl -L --fail --retry 3 --compressed \
+            -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151.0 Safari/537.36' \
+            -e 'https://veteransedu.net/' \
+            'https://veteransedu.net/' \
+            -o site/index.html
+          test -s site/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
